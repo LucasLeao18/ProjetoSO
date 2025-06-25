@@ -1,172 +1,277 @@
 
-1. Visão Geral
-Objetivo: simular o gerenciamento de memória virtual com página­ção e política NRU, exibindo em tempo real cada evento (hit, falta de página, swap, estado da RAM e do disco) em um console Swing.
+# Simulador de Gerenciamento de Memória Virtual com Política NRU
 
-Fluxo principal:
+Este projeto em Java simula o gerenciamento de memória virtual por paginação, usando a política **Not Recently Used (NRU)** de substituição de páginas. Todas as operações (page-hit, page-fault, swap-in, swap-out e estado da RAM/disco) são exibidas em tempo real em um “console” Swing.
 
-Main → inicializa o console e dispara dois Processo em threads distintas.
+---
 
-Cada Processo gera uma sequência de operações (leitura/escrita) que invocam GerenciadorDeMemoria.acessarPagina().
+## 📋 Tabela de Conteúdos
 
-O GerenciadorDeMemoria coordena a MemoriaPrincipal (RAM) e a MemoriaVirtual (swap), aplicando a política NRU para decidir qual página remover quando a RAM está cheia.
+1. [Visão Geral](#visão-geral)  
+2. [Funcionalidades](#funcionalidades)  
+3. [Estrutura de Diretórios](#estrutura-de-diretórios)  
+4. [Pré-requisitos](#pré-requisitos)  
+5. [Compilação](#compilação)  
+6. [Execução](#execução)  
+7. [Descrição Detalhada das Classes](#descrição-detalhada-das-classes)  
+   - [Console](#1-console)  
+   - [Pagina](#2-pagina)  
+   - [Substituicao (interface)](#3-substituicao-interface)  
+   - [AlgoritmoNRU](#4-algoritmonru)  
+   - [MemoriaPrincipal](#5-memoriaprincipal)  
+   - [MemoriaVirtual](#6-memoriavirtual)  
+   - [GerenciadorDeMemoria](#7-gerenciadordememoria)  
+   - [Processo](#8-processo)  
+   - [Main](#9-main)  
+8. [Fluxo de Execução](#fluxo-de-execução)  
+9. [Política NRU – Como Funciona](#política-nru--como-funciona)  
+10. [Concorrência e Sincronização](#concorrência-e-sincronização)  
+11. [Possíveis Extensões](#possíveis-extensões)  
 
-Todas as ações e estados são reportados em tempo real por Console.log(), que escreve num JTextArea dentro de um JFrame.
+---
 
-2. Diagrama de Classes (simplificado)
-scss
-Copiar
-Editar
-Main ──▶ Console
-   │
-   ├─▶ GerenciadorDeMemoria ─┬─▶ MemoriaPrincipal
-   │                         ├─▶ MemoriaVirtual
-   │                         └─▶ Substituicao (interface)
-   │                              └─▶ AlgoritmoNRU (implementação)
-   │
-   └─▶ Processo (Thread)
-3. Componentes Detalhados
-3.1 Console
-Classe: memoria.Console
+## Visão Geral
 
-Responsabilidade: abrir uma janela Swing com um JTextArea e oferecer método estático log(String) para imprimir linhas.
+Este simulador recria, de forma didática, o comportamento de:
 
-Como funciona:
+- **Memória Principal (RAM)** com número fixo de quadros.  
+- **Memória Virtual (Swap)** com capacidade configurável.  
+- **Processos concorrentes** acessando páginas (leitura/escrita).  
+- **Console gráfico Swing** exibindo logs em tempo real.  
+- **Política NRU** para escolher qual página descartar quando a RAM enche.
 
-init() cria o JFrame, adiciona um JScrollPane que envolve um JTextArea não editável.
+É útil para estudo de Sistemas Operacionais, especialmente em disciplinas de **Gerenciamento de Memória**.
 
-log(...) chama SwingUtilities.invokeLater(...) para garantir atualização segura da UI e faz scroll automático ao final.
+---
 
-3.2 Página
-Classe: memoria.Pagina
+## Funcionalidades
 
-Atributos:
+- 📄 **Paginação**: cada página é objeto `Pagina` com bits R/W e moldura.  
+- 🔄 **Page-fault**: ao faltar página na RAM, simula swap-out e swap-in.  
+- 📊 **Console Swing**: janela que exibe cada evento e o estado atual da RAM e do disco.  
+- ⚙️ **Política NRU**: escolhe a “vítima” conforme bits Referenciada e Modificada.  
+- 🔒 **Thread-safe**: acesso sincronizado no `GerenciadorDeMemoria` para simular múltiplos processos.
 
-id e processoId (imutáveis)
+---
 
-referenciada, modificada, presente, moldura (bits e posição)
+## Estrutura de Diretórios
 
-Métodos: getters, setters de bits e toString() para exibir “P{pid}P{id}”.
+```
 
-3.3 Política de Substituição (NRU)
-Interface: memoria.algoritmo.Substituicao
+src/
+└─ memoria/
+├─ algoritmo/
+│   ├─ Substituicao.java      ← interface de política
+│   └─ AlgoritmoNRU.java      ← implementação NRU
+├─ Console.java               ← console Swing em tempo real
+├─ Pagina.java                ← modelo de página
+├─ MemoriaPrincipal.java      ← simula a RAM
+├─ MemoriaVirtual.java        ← simula o swap/disco
+├─ GerenciadorDeMemoria.java  ← coordena RAM, swap e algoritmo
+├─ Processo.java              ← thread que referencia páginas
+└─ Main.java                  ← ponto de entrada da simulação
+README.md                          ← este arquivo
 
-Implementação: memoria.algoritmo.AlgoritmoNRU
+````
 
-Agrupa páginas em quatro classes segundo bits R/W:
+---
 
-R=0, W=0
+## Pré-requisitos
 
-R=0, W=1
+- **Java Development Kit (JDK) 8+**  
+- IDE ou editor de sua preferência (Eclipse, IntelliJ, VSCode…)  
+- Memória mínima: ideias em 512 MB de heap para visualização via Swing
 
-R=1, W=0
+---
 
-R=1, W=1
+## Compilação
 
-Escolhe a primeira classe não vazia, embaralha (para desempate) e retorna a vítima.
+Abra um terminal na pasta `src` e rode:
 
-3.4 Memória Principal (RAM)
-Classe: memoria.MemoriaPrincipal
+```bash
+javac memoria/Console.java \
+      memoria/algoritmo/*.java \
+      memoria/*.java
+````
 
-Atributos:
+Isso gerará os arquivos `.class` correspondentes.
 
-tamanho (nº máximo de quadros)
+---
 
-paginas (lista de Pagina residentes)
+## Execução
 
-Métodos:
+Ainda no diretório `src`, execute:
 
-contem(Pagina) — verifica por id+pid
+```bash
+java memoria.Main
+```
 
-adicionar(Pagina) — marca presente, define moldura e loga no console
+1. Uma janela “Console de Operações” aparecerá.
+2. Dois processos (IDs 1 e 2) iniciarão referências às páginas em paralelo.
+3. Você verá no console cada passo:
 
-remover(Pagina) — retira da lista, marca ausente e loga
+   * **Falta de página**, **Creação** de nova página
+   * **Hit** (quando a página já está em RAM)
+   * **Swap-out** (remoção de página da RAM para o disco)
+   * **Swap-in** (trazer página do disco para a RAM)
+   * Exibição dos estados atuais da RAM e do disco
+   * Linha de separação “───” após cada acesso
 
-mostrar() — imprime lista atual
+---
 
-3.5 Memória Virtual (Swap)
-Classe: memoria.MemoriaVirtual
+## Descrição Detalhada das Classes
 
-Funcionamento muito parecido com a RAM, mas armazena páginas não residentes e não tem molde físico (sempre presente=false).
+### 1. Console
 
-3.6 Gerenciador de Memória
-Classe: memoria.GerenciadorDeMemoria
+* **Pacote**: `memoria`
+* **Responsabilidade**: criar uma janela Swing com `JTextArea` e método estático `log(String)` para imprimir mensagens.
+* **Uso**: todas as classes chamam `Console.log(...)` em vez de `System.out.println`.
 
-Atributos: instâncias de MemoriaPrincipal, MemoriaVirtual e Substituicao (NRU).
+### 2. Pagina
 
-Método-chave:
+* **Pacote**: `memoria`
+* **Atributos** (privados):
 
-java
-Copiar
-Editar
-public synchronized void acessarPagina(String operacao, int pid)
-Fluxo interno:
+  * `id`, `processoId` (imútaveis)
+  * `referenciada`, `modificada`, `presente`, `moldura`
+* **Métodos**:
 
-Parse de "X-R" ou "X-W" em paginaId e tipoOp.
+  * Getters e setters de bits
+  * `toString()` retorna “P{processoId}P{id}” para exibição.
 
-Cria um objeto temporário Pagina(paginaId, pid).
+### 3. Substituicao (interface)
 
-Página em RAM?
+* **Pacote**: `memoria.algoritmo`
+* **Método único**:
 
-Sim: é hit → recupera a instância real da lista.
+  ```java
+  Pagina substituir(List<Pagina> paginas);
+  ```
+* **Objetivo**: definir o contrato para políticas de substituição de páginas.
 
-Não: é page fault →
-a. Se a RAM está cheia, chama algoritmo.substituir(...) para eleger vítima.
-b. Move a vítima da RAM para o swap (disco.adicionar(vitima)).
-c. Se a página requerida já está no swap, faz swap-in (remove do disco).
-d. Caso contrário, cria nova página.
-e. Adiciona a página na RAM (ram.adicionar(...)).
+### 4. AlgoritmoNRU
 
-Ajusta bits: setReferenciada(true) e, se for 'W', setModificada(true).
+* **Pacote**: `memoria.algoritmo`
+* **Implementa**: `Substituicao`
+* **Estratégia**:
 
-Exibe estado atual de RAM e disco via ram.mostrar() e disco.mostrar().
+  1. Divide as páginas em 4 classes por bits R/W:
 
-Insere linha de separação no console para legibilidade.
+     * Classe 0: R=0, W=0
+     * Classe 1: R=0, W=1
+     * Classe 2: R=1, W=0
+     * Classe 3: R=1, W=1
+  2. Escolhe a primeira classe não vazia (menor penalidade).
+  3. Embaralha a lista dessa classe para desempate aleatório.
+  4. Retorna a página vítima.
 
-Nota: o método é synchronized para impedir que duas threads façam alterações concorrentes na mesma estrutura de dados.
+### 5. MemoriaPrincipal
 
-3.7 Processo (Thread)
-Classe: memoria.Processo implementa Runnable.
+* **Pacote**: `memoria`
+* **Atributos**:
 
-Construtor recebe id, List<String> operacoes e o GerenciadorDeMemoria.
+  * `tamanho`: número máximo de quadros
+  * `paginas`: `List<Pagina>` residentes
+* **Métodos**:
 
-run(): itera sobre cada operação, chama gerenciador.acessarPagina(op, id) e faz Thread.sleep(100) para espalhar as ações no tempo.
+  * `contem(Pagina)`: verifica se já está em RAM
+  * `adicionar(Pagina)`: marca presente, atribui moldura e loga
+  * `remover(Pagina)`: retira da lista e loga
+  * `mostrar()`: exibe lista completa
 
-start(): método auxiliar que cria e inicia uma nova Thread(this).
+### 6. MemoriaVirtual
 
-4. Sequência de Execução
-Main.main()
+* **Pacote**: `memoria`
+* **Semelhante à RAM**, porém:
 
-Chama Console.init() → abre janela de log.
+  * Armazena páginas não residentes
+  * Lança exceção se o disco encher
+  * Não gerencia molduras físicas
 
-Cria um GerenciadorDeMemoria(3, 10, new AlgoritmoNRU()).
+### 7. GerenciadorDeMemoria
 
-Instancia dois processos p1 e p2 com suas listas de acessos.
+* **Pacote**: `memoria`
+* **Atributos**:
 
-Chama p1.start() e p2.start() quase simultaneamente.
+  * `MemoriaPrincipal ram`
+  * `MemoriaVirtual disco`
+  * `Substituicao algoritmo`
+* **Método-chave**:
 
-Cada Processo gera chamadas concorrentemente a acessarPagina(). Graças ao synchronized, cada chamada é executada por vez, mas as threads alternam entre si, simulando execução paralela.
+  ```java
+  public synchronized void acessarPagina(String operacao, int pid)
+  ```
 
-No console Swing aparecem, em ordem cronológica:
+  1. Faz parse de `"X-R"` ou `"X-W"`.
+  2. Checa **page-hit** (em RAM) ou **page-fault**.
+  3. Se RAM cheia, invoca `algoritmo.substituir(...)`, swap-out e swap-in.
+  4. Marca bits R/W.
+  5. Atualiza logs: falta de página, hit, swap, estado de RAM/disco.
 
-“Falta de página: P…”, “Criando nova página”, “Carregou na RAM”
+### 8. Processo
 
-“Hit: P…” quando a página já estiver carregada
+* **Pacote**: `memoria`
+* **Implementa**: `Runnable`
+* **Função**: iterar sobre `List<String> operacoes` (e.g. `"4-R"`, `"5-W"`), chamar `gerenciador.acessarPagina`, e dormir 100 ms entre cada operação.
+* **Método extra**: `start()` para criar e iniciar a Thread.
 
-“Removeu da RAM: P…” e “Gravou no disco: P…” em situações de swap-out
+### 9. Main
 
-“Swap-in: P…” quando a página retorna do disco
+* **Pacote**: `memoria`
+* **Ponto de Entrada**:
 
-“Estado RAM: […]” e “Estado Disco: […]” após cada acesso
+  1. `Console.init()` abre a UI.
+  2. Instancia `GerenciadorDeMemoria(3, 10, new AlgoritmoNRU())`.
+  3. Cria e inicia dois processos com sequências predefinidas.
 
-Linhas “———” dividindo cada acesso para facilitar a leitura.
+---
 
-5. Pontos de Extensão e Melhorias
-Reset periódico do bit R (para NRU fiel): implementar um timer que zere referenciada em intervalos fixos.
+## Fluxo de Execução
 
-Outras políticas: criar classes como AlgoritmoLRU ou AlgoritmoFIFO implementando Substituicao.
+1. **Inicialização**: Swing Console + Gerenciador de Memória.
+2. **Processos Concorrentes**: threads p1 e p2 disparam acessos.
+3. **Acesso a Página**:
 
-Parâmetros configuráveis: oferecer opções de tamanho de RAM, disco e delay via linha de comando ou GUI de setup.
+   * Se está em RAM → **Hit**
+   * Se não → **Page-fault**, possivelmente **Swap-out** + **Swap-in** ou criação de nova página
+4. **Marcação de Bits**: R = sempre, W = apenas em escrita
+5. **Logs**: cada passo e estado das memórias são exibidos em tempo real.
 
-Visualização gráfica: além do console, desenhar quadros da RAM e do disco em painéis Swing.
+---
 
-Com essa arquitetura, você tem uma simulação completa, thread-safe e interativa do gerenciamento de memória virtual com páginação e política NRU.
+## Política NRU – Como Funciona
+
+* **R (Referenced)**: indica se a página foi acessada recentemente.
+* **W (Modified)**: indica se foi escrita desde que entrou na RAM.
+* **Classes de Vítima**:
+
+  1. R=0, W=0 (menor custo)
+  2. R=0, W=1
+  3. R=1, W=0
+  4. R=1, W=1 (maior custo)
+* **Seleção**: escolhe a menor classe não vazia e remove aleatoriamente uma página dela.
+
+---
+
+## Concorrência e Sincronização
+
+* `acessarPagina(...)` é `synchronized` para garantir **consistência** das estruturas (RAM e disco) quando múltiplas threads acessam ao mesmo tempo.
+* O Console usa `SwingUtilities.invokeLater(...)` para atualizar a UI sem bloquear a Event Dispatch Thread.
+
+---
+
+## Possíveis Extensões
+
+* 🔄 **Reset periódico do bit R** para simular o “clock” NRU real.
+* ⚙️ **Novas políticas**: LRU, FIFO, Clock, trabalhando com a mesma interface `Substituicao`.
+* 🎛️ **Configuração via GUI**: permitir ao usuário ajustar tamanhos de RAM, swap e delays dinamicamente.
+* 📈 **Visualização gráfica**: desenhar quadros da RAM/disco em painéis separados.
+* 📝 **Relatórios**: exportar logs para CSV ou HTML para análise posterior.
+
+---
+
+> **Desfrute da simulação!**
+> Qualquer dúvida ou sugestão, abra uma *issue* ou envie um pull request.
+
+```
+```
