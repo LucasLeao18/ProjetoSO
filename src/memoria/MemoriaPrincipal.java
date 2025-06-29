@@ -20,8 +20,19 @@ public class MemoriaPrincipal {
 
     public boolean contem(Pagina pg) {
         return paginas.stream()
-            .anyMatch(p -> p.getId()==pg.getId()
-                        && p.getProcessoId()==pg.getProcessoId());
+            .anyMatch(p -> p.getId() == pg.getId()
+                        && p.getProcessoId() == pg.getProcessoId());
+    }
+
+    public Pagina getPagina(Pagina pg) {
+        return paginas.stream()
+            .filter(p -> p.getId() == pg.getId()
+                      && p.getProcessoId() == pg.getProcessoId())
+            .findFirst().orElse(null);
+    }
+
+    public boolean cheia() {
+        return paginas.size() >= tamanho;
     }
 
     public void adicionar(Pagina pg) {
@@ -32,8 +43,8 @@ public class MemoriaPrincipal {
     }
 
     public void remover(Pagina pg) {
-        paginas.removeIf(p -> p.getId()==pg.getId()
-                          && p.getProcessoId()==pg.getProcessoId());
+        paginas.removeIf(p -> p.getId() == pg.getId()
+                          && p.getProcessoId() == pg.getProcessoId());
         pg.setPresente(false);
         Console.log("→ Removeu da RAM: " + pg);
     }

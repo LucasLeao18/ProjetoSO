@@ -10,46 +10,45 @@ public class GerenciadorDeMemoria {
     private final MemoriaVirtual disco;
     private final Substituicao algoritmo;
 
-    public GerenciadorDeMemoria(int tamRam,
-                                int tamSwap,
-                                Substituicao algoritmo) {
-        this.ram       = new MemoriaPrincipal(tamRam);
-        this.disco     = new MemoriaVirtual(tamSwap);
+    public GerenciadorDeMemoria(int tamRam, int tamSwap, Substituicao algoritmo) {
+        this.ram = new MemoriaPrincipal(tamRam);
+        this.disco = new MemoriaVirtual(tamSwap);
         this.algoritmo = algoritmo;
     }
 
-    public synchronized void acessarPagina(String operacao, int pid) {
-        String[] parts  = operacao.split("-");
-        int    pgId     = Integer.parseInt(parts[0]);
-        char   tipoOp   = parts[1].charAt(0);
-        Pagina pagina   = new Pagina(pgId, pid);
+    public synchronized void acessarPagina(int paginaId, char tipo, int processoId, Integer valor) {
+        Pagina pagina = new Pagina(paginaId, processoId);
 
-        if (ram.contem(pagina)) {
-            // page-hit
-            pagina = ram.getPaginas().stream()
-                .filter(p -> p.getId()==pgId && p.getProcessoId()==pid)
-                .findFirst().get();
-            Console.log("Hit → " + pagina);
-        } else {
-            // page-fault
+        if (!ram.contem(pagina)) {
             Console.log("Falta de página: " + pagina);
-            if (ram.getPaginas().size() >= ram.getTamanho()) {
+
+            if (ram.cheia()) {
                 Pagina vitima = algoritmo.substituir(ram.getPaginas());
                 ram.remover(vitima);
                 disco.adicionar(vitima);
             }
+
             if (disco.contem(pagina)) {
                 disco.remover(pagina);
                 Console.log("→ Swap-in: " + pagina);
             } else {
                 Console.log("→ Criando nova página: " + pagina);
             }
+
             ram.adicionar(pagina);
+        } else {
+            pagina = ram.getPagina(pagina);
+            Console.log("Page hit: " + pagina);
         }
 
-        // marca R/W
         pagina.setReferenciada(true);
-        if (tipoOp == 'W') pagina.setModificada(true);
+
+        if (tipo == 'W') {
+            pagina.setModificada(true);
+            Console.log("→ Escrita de valor " + valor + " em " + pagina);
+        } else {
+            Console.log("→ Leitura de " + pagina);
+        }
 
         ram.mostrar();
         disco.mostrar();
