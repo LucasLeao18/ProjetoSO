@@ -37,7 +37,7 @@ public class GerenciadorDeMemoria {
 
             ram.adicionar(pagina);
         } else {
-            pagina = ram.getPagina(pagina);
+            pagina = ram.getPagina(pagina); // garantir referência
             Console.log("Page hit: " + pagina);
         }
 
@@ -53,5 +53,13 @@ public class GerenciadorDeMemoria {
         ram.mostrar();
         disco.mostrar();
         Console.log("------------------------------------------------");
+    }
+
+    public MemoriaPrincipal getRam() {
+        return ram;
+    }
+
+    public Substituicao getAlgoritmo() {
+        return algoritmo;
     }
 }

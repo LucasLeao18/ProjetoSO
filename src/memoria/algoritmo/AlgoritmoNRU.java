@@ -23,12 +23,23 @@ public class AlgoritmoNRU implements Substituicao {
             classes.get(idx).add(p);
         }
 
-        for (List<Pagina> cls : classes) {
+        for (int i = 0; i < classes.size(); i++) {
+            List<Pagina> cls = classes.get(i);
             if (!cls.isEmpty()) {
                 Collections.shuffle(cls);
-                return cls.get(0);
+                Pagina escolhida = cls.get(0);
+                memoria.Console.log("→ NRU escolheu classe " + i + ": " + escolhida);
+                return escolhida;
             }
         }
+
         return paginas.get(0);
+    }
+
+    public void resetReferenciadas(List<Pagina> paginas) {
+        for (Pagina p : paginas) {
+            p.setReferenciada(false);
+        }
+        memoria.Console.log("⟳ Bits R resetados pelas política NRU");
     }
 }

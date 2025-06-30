@@ -11,8 +11,18 @@ public class Main {
         Console.init();
 
         GerenciadorDeMemoria ger = new GerenciadorDeMemoria(
-            3, 10, new AlgoritmoNRU()
-        );
+            3, 10, new AlgoritmoNRU());
+
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    break;
+                }
+                ((AlgoritmoNRU) ger.getAlgoritmo()).resetReferenciadas(ger.getRam().getPaginas());
+            }
+        }).start();
 
         Processo p1 = new Processo(1,
             Arrays.asList("1-R", "2-R", "3-W-99", "1-W-5", "4-R", "5-R"),
