@@ -27,7 +27,7 @@ public class Processo extends Thread {
 
             if (tipo == 'R') {
                 ger.acessarPagina(paginaId, 'R', id, null);
-            } else if (tipo == 'W') {
+            } else {
                 int valor = Integer.parseInt(partes[2]);
                 ger.acessarPagina(paginaId, 'W', id, valor);
             }

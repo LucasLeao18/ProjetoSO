@@ -34,6 +34,6 @@ public class Pagina {
 
     @Override
     public String toString() {
-        return "P" + processoId + "P" + id;
+        return "Proc:" + processoId + "|"+ "Pag:" + id;
     }
 }

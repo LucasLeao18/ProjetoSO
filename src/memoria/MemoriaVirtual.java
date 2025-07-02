@@ -22,11 +22,13 @@ public class MemoriaVirtual {
     }
 
     public void adicionar(Pagina pg) {
-        if (paginas.size() >= tamanho)
+        if (paginas.size() >= tamanho){
             throw new RuntimeException("Swap cheio!");
+         } else{
         paginas.add(pg);
         pg.setPresente(false);
         Console.log("→ Gravou no disco: " + pg);
+         }
     }
 
     public void remover(Pagina pg) {
