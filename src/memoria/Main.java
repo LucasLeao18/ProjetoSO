@@ -12,15 +12,17 @@ public class Main {
         Console.init();
 
         GerenciadorDeMemoria ger = new GerenciadorDeMemoria(
-            3, 10, new AlgoritmoNRU()
+            15, 30, new AlgoritmoNRU()
         );
-        String entrada = new FabricaDeEntradas(10).getNewEntrada();
-        List<String> operacoes = Arrays.asList(entrada.split(","));
+        List<String> operacoes1 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
+        List<String> operacoes2 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
+        List<String> operacoes3 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
+        List<String> operacoes4 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
 
-        Processo p1 = new Processo(1, operacoes, ger);
-        Processo p2 = new Processo(2, operacoes, ger);
-        Processo p3 = new Processo(3, operacoes, ger);
-        Processo p4 = new Processo(4, operacoes, ger);
+        Processo p1 = new Processo(1, operacoes1, ger);
+        Processo p2 = new Processo(2, operacoes2, ger);
+        Processo p3 = new Processo(3, operacoes3, ger);
+        Processo p4 = new Processo(4, operacoes4, ger);
 
 
         p1.start();
