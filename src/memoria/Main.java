@@ -14,10 +14,10 @@ public class Main {
         GerenciadorDeMemoria ger = new GerenciadorDeMemoria(
             15, 30, new AlgoritmoNRU()
         );
-        List<String> operacoes1 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
-        List<String> operacoes2 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
-        List<String> operacoes3 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
-        List<String> operacoes4 = Arrays.asList(new FabricaDeEntradas(10).getNewEntrada().split(","));
+        List<String> operacoes1 = Arrays.asList(new FabricaDeEntradas(15).getNewEntrada().split(","));
+        List<String> operacoes2 = Arrays.asList(new FabricaDeEntradas(15).getNewEntrada().split(","));
+        List<String> operacoes3 = Arrays.asList(new FabricaDeEntradas(15).getNewEntrada().split(","));
+        List<String> operacoes4 = Arrays.asList(new FabricaDeEntradas(15).getNewEntrada().split(","));
 
         Processo p1 = new Processo(1, operacoes1, ger);
         Processo p2 = new Processo(2, operacoes2, ger);
